@@ -26,9 +26,9 @@ export default function App() {
   const loadInitialData = async () => {
     try {
       const [healthRes, jobsRes, circuitRes] = await Promise.all([
-        fetch('/api/health').then(r => r.json()),
-        fetch('/api/jobs').then(r => r.json()),
-        fetch('/api/circuit/status').then(r => r.json()),
+        fetch('/api/health').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/jobs').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/circuit/status').then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
 
       if (healthRes) {
@@ -126,14 +126,18 @@ export default function App() {
         }),
       });
 
-      const data = await res.json();
-      if (data.success && data.result?.jobs) {
-        // Refresh job listings
-        const jobsRes = await fetch('/api/jobs');
-        const jobsData = await jobsRes.json();
-        if (jobsData.jobs) {
-          setJobs(jobsData.jobs);
-          setMetrics(m => ({ ...m, jobCount: jobsData.total }));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.result?.jobs) {
+          // Refresh job listings
+          const jobsRes = await fetch('/api/jobs');
+          if (jobsRes.ok) {
+            const jobsData = await jobsRes.json();
+            if (jobsData.jobs) {
+              setJobs(jobsData.jobs);
+              setMetrics(m => ({ ...m, jobCount: jobsData.total }));
+            }
+          }
         }
       }
     } catch (err) {
@@ -147,8 +151,10 @@ export default function App() {
   const handleResetCircuits = async () => {
     try {
       const res = await fetch('/api/circuit/reset', { method: 'POST' });
-      const data = await res.json();
-      if (data.breakers) setCircuitBreakers(data.breakers);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.breakers) setCircuitBreakers(data.breakers);
+      }
     } catch (err) {
       console.error('Failed to reset circuits', err);
     }

@@ -14,7 +14,10 @@ export function ChaosLab({ onTriggerIngestion }) {
 
   useEffect(() => {
     fetch('/api/chaos/config')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => setConfig(data))
       .catch(err => console.error('Failed to fetch chaos config', err));
   }, []);
@@ -36,9 +39,11 @@ export function ChaosLab({ onTriggerIngestion }) {
   const resetAllChaos = async () => {
     try {
       const res = await fetch('/api/chaos/reset', { method: 'POST' });
-      const data = await res.json();
-      setConfig(data.config);
-      setActiveDrill(null);
+      if (res.ok) {
+        const data = await res.json();
+        setConfig(data.config);
+        setActiveDrill(null);
+      }
     } catch (err) {
       console.error('Failed to reset chaos', err);
     }

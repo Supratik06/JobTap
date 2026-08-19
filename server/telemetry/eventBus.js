@@ -11,14 +11,29 @@ class TelemetryEventBus extends EventEmitter {
   addClient(res) {
     this.clients.add(res);
     // Send initial connection handshake and recent history
-    res.write(`event: connected\ndata: ${JSON.stringify({ timestamp: Date.now(), clientCount: this.clients.size })}\n\n`);
+    try {
+      res.write(`event: connected\ndata: ${JSON.stringify({ timestamp: Date.now(), clientCount: this.clients.size })}\n\n`);
+    } catch (e) {}
     
     // Replay recent history to new client
     if (this.history.length > 0) {
-      res.write(`event: history\ndata: ${JSON.stringify(this.history.slice(-30))}\n\n`);
+      try {
+        res.write(`event: history\ndata: ${JSON.stringify(this.history.slice(-30))}\n\n`);
+      } catch (e) {}
     }
 
+    // Keepalive ping for Vercel / serverless proxy persistence
+    const keepAliveTimer = setInterval(() => {
+      try {
+        res.write(': keep-alive\n\n');
+      } catch (err) {
+        clearInterval(keepAliveTimer);
+        this.clients.delete(res);
+      }
+    }, 15000);
+
     const removeClient = () => {
+      clearInterval(keepAliveTimer);
       this.clients.delete(res);
     };
 

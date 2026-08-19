@@ -8,7 +8,10 @@ export function DetectionLab() {
 
   useEffect(() => {
     fetch('/api/fingerprint/inspect')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(d => {
         setData(d);
         setLoading(false);
